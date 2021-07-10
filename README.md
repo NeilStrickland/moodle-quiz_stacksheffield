@@ -1,4 +1,8 @@
-# moodle-quiz_stacksheffield
-A Moodle quiz report with detailed analysis of responses to STACK questions
+# STACK question reporting
 
-This is alpha quality code which relies on forked versions of STACK and the adaptivemultipart question behaviour, and also on ad hoc features of the questions that we are using in Sheffield.  We do not recommend that you should use this plugin unless you are willing to dive deeply into the code.
+This Moodle quiz reporting module provides bespoke reports for the
+STACK question type.  It is cannibalised from an earlier module with
+the same purpose created by Tim Hunt and Chris Sangwin.  This version
+is designed for use with the Sheffield forks of STACK and the
+adaptivemultipart question behhaviour.
+
