@@ -28,6 +28,7 @@ require_once($CFG->dirroot . '/mod/quiz/report/attemptsreport.php');
 require_once($CFG->dirroot . '/mod/quiz/report/statistics/report.php');
 require_once($CFG->dirroot . '/question/type/stack/locallib.php');
 
+require_once($CFG->dirroot . '/mod/quiz/report/stacksheffield/classes/question_analysis.php');
 
 /**
  * Report subclass for the responses report to individual stack questions.
@@ -149,7 +150,9 @@ class quiz_stacksheffield_report extends quiz_attempts_report {
     }
 
     public function analyse_data($question) {
-        $a = new question_analysis($question->id);
+        $a = new \quiz_stacksheffield\question_analysis($question->id);
+        $this->question_analysis = $a;
+        return $a;
     }
     
     /**
@@ -166,7 +169,9 @@ class quiz_stacksheffield_report extends quiz_attempts_report {
 
         $this->qnotes = array();
 
-        $this->analyse_data($question);
+        $a = $this->analyse_data($question);
+
+        echo "<pre>"; var_dump($a); echo "</pre>";
         
         // Maxima analysis.
         $maxheader = array();
