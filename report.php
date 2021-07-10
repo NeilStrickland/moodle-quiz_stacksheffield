@@ -150,9 +150,33 @@ class quiz_stacksheffield_report extends quiz_attempts_report {
     }
 
     public function analyse_data($question) {
-        $a = new \quiz_stacksheffield\question_analysis($question->id);
-        $this->question_analysis = $a;
-        return $a;
+        $A = new \quiz_stacksheffield\question_analysis($question->id);
+        $this->question_analysis = $A;
+
+        $sql = <<<SQL
+SELECT 
+ d.id AS data_id,
+ d.name,
+ d.value,
+ s.id AS step_id,
+ s.sequencenumber,
+ s.state,
+ b.id AS attempt_id
+FROM mdl_question_attempt_step_data d
+LEFT JOIN mdl_question_attempt_steps s ON d.attemptstepid=s.id
+LEFT JOIN mdl_question_attempts b ON s.questionattemptid=b.id
+WHERE b.questionid=:question_id
+SQL;
+
+        $dd = $DB->get_records_sql($sql,array('question_id' => $question_id));
+
+        foreach($dd as $d) {
+            $A->add_data($d);
+        }
+
+        $A->collate();
+
+        return $A;
     }
     
     /**
