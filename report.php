@@ -149,7 +149,7 @@ class quiz_stacksheffield_report extends quiz_attempts_report {
     }
 
     public function analyse_data($question) {
-     
+        $a = new question_analysis($question->id);
     }
     
     /**
@@ -165,6 +165,8 @@ class quiz_stacksheffield_report extends quiz_attempts_report {
         $this->prts = array_keys($question->prts);
 
         $this->qnotes = array();
+
+        $this->analyse_data($question);
         
         // Maxima analysis.
         $maxheader = array();
