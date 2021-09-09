@@ -35,7 +35,7 @@ class question_analysis {
   $this->question_id = $question->id;
   $this->attempts = array();
   $this->attempts_by_id = array();
-
+  
   self::prepare_question($this->question);
  }
 
@@ -49,7 +49,9 @@ class question_analysis {
    }
    $a = new question_attempt_analysis($this->question,
                                       $x->attempt_id,
-                                      $x->question_note);
+                                      $x->question_note,
+                                      $x->quiz_attempt_id,
+                                      $x->slot);
    $this->attempts[] = $a;
    $this->attempts_by_id[$x->attempt_id] = $a;
   }
@@ -61,10 +63,45 @@ class question_analysis {
   if ($this->attempts) {
    $a0 = self::last_entry($this->attempts);
    $a0->finalise();
-  }  
+  }
  }
 
+ function uses_standard_mr_notes() {
+  foreach ($this->attempts as $a) {
+   foreach ($a->submissions as $s) {
+    $n = $s->note;
+    if ($n && ! ($n == 'correct' || preg_match('/^[YNyn!?]+$/',$n))) {
+     return false;
+    }
+   }
+  }  
+
+  return true;
+ }
+
+ function convert_standard_mr_notes() {
+  foreach ($this->attempts as $a) {
+   foreach ($a->submissions as $s) {
+    $s->corrected_option = null;
+    if ($s->note) {
+     for ($i = 0; $i < strlen($s->note); $i++) {
+      $c = substr($s->note,$i,1);
+      if ($c == '!' || $c == '?') {
+       $s->corrected_option = $i;
+       break;
+      }
+     }
+     $s->note = strtr($s->note,'?!','yn');
+    }
+   }
+  }
+ }
+ 
  function collate() {
+  if ($this->uses_standard_mr_notes()) {
+   $this->convert_standard_mr_notes();
+  }
+  
   $this->all_submissions   = array();
   $this->first_submissions = array();
   $this->last_submissions  = array();

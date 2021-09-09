@@ -30,13 +30,17 @@ class question_attempt_analysis {
  var $question = null;
  var $attempt_id = null;
  var $question_note = null;
+ var $quiz_attempt_id = null;
+ var $slot = null;
  var $perm = array();
  var $seed = null;
  
- function __construct($question,$id,$question_note) {
+ function __construct($question,$id,$question_note,$quiz_attempt_id,$slot) {
   $this->question = $question;
   $this->attempt_id = $id;
   $this->question_note = $question_note;
+  $this->quiz_attempt_id = $quiz_attempt_id;
+  $this->slot = $slot;
   $this->steps = array();
   $this->steps_by_id = array();
   $this->submissions = array();
@@ -73,7 +77,9 @@ class question_attempt_analysis {
                                            (int) $x->step_id,
                                            $this->question_note,
                                            $this->perm,
-                                           $this->attempt_id);
+                                           $this->attempt_id,
+                                           $this->quiz_attempt_id,
+                                           $this->slot);
    $this->steps[] = $s;
    $this->steps_by_id[$x->step_id] = $s;
    $s->sequence_number = (int) $x->sequencenumber;

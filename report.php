@@ -301,6 +301,8 @@ SQL;
      * @param object $question the row from the question table for the question to analyse.
      */
     public function display_analysis($question) {
+        global $OUTPUT;
+     
         $this->question = $question;
         get_question_options($question);
         $this->analyse_code();
@@ -369,11 +371,24 @@ SQL;
             }
             $ss = $s[$n];
             $t = '';
-            $m = min(10,count($ss));
+            $m0 = count($ss);
+            $m = min(9,$m0);
             for ($j = 0; $j < $m; $j++) {
                 $x = $ss[$j];
-                echo "<pre>"; var_dump($x); echo "</pre>"; exit;
+                $url = new \moodle_url('/mod/quiz/reviewquestion.php',
+                                       array('attempt' => $x->quiz_attempt_id,
+                                             'slot' => $x->slot,
+                                             'step' => $x->sequence_number));
+                $action = new \popup_action('click', $url, 'reviewquestion',
+                                            array('height' => 450, 'width' => 650));
+                $link = $OUTPUT->action_link($url,$j+1,$action);
+
+                $t .= $link . ' ';
             }
+            if ($m0 > 9) {
+                $t .= '[' . $m0 . ']';
+            }
+            
             $r[] = $t;
             $table->data[] = $r;
         }

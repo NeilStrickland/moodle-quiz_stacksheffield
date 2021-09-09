@@ -33,6 +33,8 @@ class question_attempt_step_analysis {
  var $sequence_number = null;
  var $question_note = null;
  var $perm = null;
+ var $quiz_attempt_id = null;
+ var $slot = null;
  var $is_submission = null;
  var $is_marked = null;
  var $is_first_submission = null;
@@ -41,13 +43,21 @@ class question_attempt_step_analysis {
  var $note = null;
  var $seed = null;
  
- function __construct($question,$id,$seq,$question_note='',$perm = null,$attempt_id = null) {
+ function __construct($question,
+                      $id,
+                      $question_note='',
+                      $perm = null,
+                      $attempt_id = null,
+                      $quiz_attempt_id = null,
+                      $slot = null) {
+  
   $this->question = $question;
   $this->question_note = $question_note;
   $this->perm = $perm;
   $this->attempt_id = $attempt_id;
   $this->step_id = $id;
-  $this->sequence_number = $seq;
+  $this->quiz_attempt_id = $quiz_attempt_id;
+  $this->slot = $slot;
   $this->data = array();
   $this->data_index = array();
   $this->answers_by_input = array();
