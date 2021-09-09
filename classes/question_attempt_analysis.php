@@ -27,15 +27,38 @@ defined('MOODLE_INTERNAL') || die();
 
 
 class question_attempt_analysis {
+ var $question = null;
  var $attempt_id = null;
+ var $question_note = null;
+ var $perm = array();
  var $seed = null;
- var $question_summary = null;
  
- function __construct($id) {
+ function __construct($question,$id,$question_note) {
+  $this->question = $question;
   $this->attempt_id = $id;
+  $this->question_note = $question_note;
   $this->steps = array();
   $this->steps_by_id = array();
   $this->submissions = array();
+  $this->perm = null;
+  
+  if ($question->is_permuted) {
+   $perm0 = explode(',',trim($question_note,' []'));
+   $n = count($perm0);
+   $m = 0;
+   $this->perm = array();
+   for ($i = 0; $i < $n; $i++) {
+    $this->perm[$i+1] = $perm0[$i];
+    $m = max($m,$perm0[$i]);
+   }
+
+   foreach($question->inputs as $i) {
+    if ($i->is_mc && $i->is_permuted) {
+     $i->num_options_used = $n;
+     $i->num_options = max($i->num_options,$m);
+    }
+   }
+  }
  }
 
  function add_data($x) {
@@ -46,15 +69,21 @@ class question_attempt_analysis {
     $s0 = end($this->steps);
     $s0->finalise();
    }
-   $s = new question_attempt_step_analysis($x->step_id);
+   $s = new question_attempt_step_analysis($this->question,
+                                           (int) $x->step_id,
+                                           $this->question_note,
+                                           $this->perm);
    $this->steps[] = $s;
    $this->steps_by_id[$x->step_id] = $s;
-   $s->sequence_number = $x->sequencenumber;
+   $s->sequence_number = (int) $x->sequencenumber;
    $s->state = $x->state;
   }
 
   if ($x->name == '_seed') {
-   $this->seed = $x->value;
+   $this->seed = (int) $x->value;
+   if ($this->seed > 1) {
+    $this->question->is_randomised = 1;
+   }
   }
   
   $s->add_data($x);

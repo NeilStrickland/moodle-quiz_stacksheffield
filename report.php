@@ -28,7 +28,17 @@ require_once($CFG->dirroot . '/mod/quiz/report/attemptsreport.php');
 require_once($CFG->dirroot . '/mod/quiz/report/statistics/report.php');
 require_once($CFG->dirroot . '/question/type/stack/locallib.php');
 
-require_once($CFG->dirroot . '/mod/quiz/report/stacksheffield/classes/question_analysis.php');
+require_once($CFG->dirroot .
+             '/mod/quiz/report/stacksheffield/classes/' .
+             'question_analysis.php');
+
+require_once($CFG->dirroot .
+             '/mod/quiz/report/stacksheffield/classes/' .
+             'question_attempt_analysis.php');
+
+require_once($CFG->dirroot .
+             '/mod/quiz/report/stacksheffield/classes/' .
+             'question_attempt_step_analysis.php');
 
 /**
  * Report subclass for the responses report to individual stack questions.
@@ -61,6 +71,9 @@ class quiz_stacksheffield_report extends quiz_attempts_report {
 
         // Initialise the required data.
         $this->mode = 'stacksheffield';
+        $this->quiz = $quiz;
+        $this->cm = $cm;
+        $this->course = $course;
         $this->context = context_module::instance($cm->id);
 
         list($currentgroup, $studentsjoins, $groupstudentsjoins, $allowedjoins) =
@@ -98,18 +111,27 @@ class quiz_stacksheffield_report extends quiz_attempts_report {
     protected function get_stack_questions_used_in_attempt(qubaid_condition $qubaids) {
         global $DB;
 
-        return $DB->get_records_sql("
-                SELECT q.*
-                  FROM {question} q
-                  JOIN (
-                        SELECT qa.questionid, MIN(qa.slot) AS firstslot
-                          FROM {$qubaids->from_question_attempts('qa')}
-                         WHERE {$qubaids->where()}
-                      GROUP BY qa.questionid
-                       ) usedquestionids ON q.id = usedquestionids.questionid
-                 WHERE q.qtype = 'stack'
-              ORDER BY usedquestionids.firstslot
-                ", $qubaids->from_where_params());
+        $sql = <<<SQL
+SELECT q.*
+FROM {question} q
+JOIN (
+ SELECT
+  qa.questionid,
+  MIN(qa.slot) AS firstslot
+  FROM {$qubaids->from_question_attempts('qa')}
+  WHERE {$qubaids->where()}
+  GROUP BY qa.questionid
+) usedquestionids 
+ON q.id = usedquestionids.questionid
+WHERE q.qtype = 'stack'
+ORDER BY usedquestionids.firstslot
+
+SQL;
+        
+        $this->stack_questions_used_in_attempt = 
+          $DB->get_records_sql($sql, $qubaids->from_where_params());
+
+        return $this->stack_questions_used_in_attempt;
     }
 
     /**
@@ -133,7 +155,7 @@ class quiz_stacksheffield_report extends quiz_attempts_report {
      * with a link to get a detailed analysis of each one.
      * @param array $questionsused the STACK questions used in this quiz.
      */
-    public function display_index($questionsused) {
+    public function display_index() {
         global $OUTPUT;
 
         $baseurl = $this->get_base_url();
@@ -141,7 +163,7 @@ class quiz_stacksheffield_report extends quiz_attempts_report {
         echo html_writer::tag('p', get_string('stackquestionsinthisquiz_descript', 'quiz_stacksheffield'));
 
         echo html_writer::start_tag('ul');
-        foreach ($questionsused as $question) {
+        foreach ($this->stack_questions_used_in_attempt as $question) {
             echo html_writer::tag('li', html_writer::link(
                     new moodle_url($baseurl, array('questionid' => $question->id)),
                     format_string($question->name)));
@@ -149,8 +171,68 @@ class quiz_stacksheffield_report extends quiz_attempts_report {
         echo html_writer::end_tag('ul');
     }
 
-    public function analyse_data($question) {
-        $A = new \quiz_stacksheffield\question_analysis($question->id);
+    /**
+     * Display a bar listing all the STACK questions in the quiz.
+     * This is to be used in a page giving detailed analysis of one
+     * question, providing links to similar pages for the other questions.
+     * @param array $questionsused the STACK questions used in this quiz.
+     */
+
+    public function display_index_bar() {
+        global $OUTPUT,$PAGE;
+
+        $currentid = $this->question->id;
+        $baseurl = $this->get_base_url();
+        $data = new stdClass();
+        $data->question = array();
+
+        $i = 0;
+        foreach ($this->stack_questions_used_in_attempt as $question) {
+            $i++;
+            $x = new stdClass();
+            $x->code = 'Q' . $i;
+            $x->name = $question->name;
+            $x->active = ($question->id == $currentid);
+            $x->url = new moodle_url($baseurl, array('questionid' => $question->id));
+            $data->question[] = $x;
+        }
+
+        $html = $OUTPUT->render_from_template(
+            'quiz_stacksheffield/questionbar',$data);
+        echo $html;
+    }
+
+    /**
+     * Display a form to control various display options
+     */
+
+    public function display_table_options() {
+        global $OUTPUT;
+
+        $html = $OUTPUT->render_from_template(
+            'quiz_stacksheffield/tableoptions',$this->table_options);
+        echo $html;
+    }
+
+    public function analyse_code() {
+        $q = $this->question;
+        $o = $q->options;
+        $code = array();
+        if (trim($o->questionvariables)) {
+            $code[] = html_writer::tag('pre', htmlspecialchars($o->questionvariables));
+        }
+        foreach($q->prts as $p) {
+            if (trim($p->feedbackvariables)) {
+                $code[] = html_writer::tag('pre', htmlspecialchars($p->feedbackvariables));
+            }
+        }
+        $this->questioncode = implode("<hr/>",$code);
+    }
+    
+    public function analyse_data() {
+        global $DB;
+        $question = $this->question;
+        $A = new \quiz_stacksheffield\question_analysis($question);
         $this->question_analysis = $A;
 
         $sql = <<<SQL
@@ -161,14 +243,15 @@ SELECT
  s.id AS step_id,
  s.sequencenumber,
  s.state,
- b.id AS attempt_id
+ b.id AS attempt_id,
+ b.questionsummary AS question_note
 FROM mdl_question_attempt_step_data d
 LEFT JOIN mdl_question_attempt_steps s ON d.attemptstepid=s.id
 LEFT JOIN mdl_question_attempts b ON s.questionattemptid=b.id
 WHERE b.questionid=:question_id
 SQL;
 
-        $dd = $DB->get_records_sql($sql,array('question_id' => $question_id));
+        $dd = $DB->get_records_sql($sql,array('question_id' => $question->id));
 
         foreach($dd as $d) {
             $A->add_data($d);
@@ -178,169 +261,177 @@ SQL;
 
         return $A;
     }
+
+    private function get_table_options() {
+        $O = new stdClass();
+        $O->cmid = $this->cm->id;
+        $O->question_id = $this->question->id;
+        
+        $roworder = optional_param('roworder','',PARAM_RAW);
+
+        if ($roworder == '') {
+            $O->splitbymark = true;
+            $O->splitbyanswernote = true;
+            $O->splitbyanswer = false;
+            $O->orderbyfreq = true;
+            $O->orderbymark = false;
+        } else {
+            $O->splitbymark = optional_param('splitbymark',false,PARAM_BOOL);
+            $O->splitbyanswernote = optional_param('splitbyanswernote',false,PARAM_BOOL);
+            $O->splitbyanswer = optional_param('splitbyanswer',false,PARAM_BOOL);
+            if ($roworder == 'orderbyfreq') {
+                $O->orderbyfreq = 1;
+                $O->orderbymark = 0;
+            } else {
+                $O->orderbyfreq = 0;
+                $O->orderbymark = 1;
+            }
+        }
+        
+        $O->includeunmarked = optional_param('includeunmarked',false,PARAM_BOOL);
+        $this->table_options = $O;
+    }
     
     /**
      * Display analysis of a particular question in this quiz.
      * @param object $question the row from the question table for the question to analyse.
      */
     public function display_analysis($question) {
+        $this->question = $question;
         get_question_options($question);
-        $this->display_question_information($question);
-
+        $this->analyse_code();
+        $A = $this->analyse_data();
+        $this->get_table_options();
+        
+        $this->display_index_bar();
+        $this->display_question_information();
+        $this->display_table_options();
+            
         // Setup useful internal arrays for report generation.
-        $this->inputs = array_keys($question->inputs);
-        $this->prts = array_keys($question->prts);
-
+        $this->inputs = array_keys($this->question->inputs);
+        $this->prts = array_keys($this->question->prts);
         $this->qnotes = array();
 
-        $a = $this->analyse_data($question);
+        $table = new html_table();
+        $table->attributes['class'] = 'generaltable';
 
-        echo "<pre>"; var_dump($a); echo "</pre>";
+        $keys = array();
+        $head = array();
+        if ($this->table_options->splitbymark) {
+            $keys[] = 'raw_fraction';
+            $head[] = 'Mark';
+        }
+
+        if ($this->table_options->splitbyanswernote) {
+            $keys[] = 'note';
+            $head[] = 'Answer note';
+        }
+
+        if ($this->table_options->splitbyanswer) {
+            if ($this->question->is_randomised &&
+                $this->question->has_note &&
+                ! $this->question->is_permuted) {
+                $keys[] = 'question_note';
+                $head[] = 'Question note';
+            }
+            $keys[] = 'answer';
+            $head[] = 'Answer';
+        }
+
+        $head[] = 'Count';
         
-        // Maxima analysis.
-        $maxheader = array();
-        $maxheader[] = "STACK input data for the question '". $question->name."'";
-        $maxheader[] = new moodle_url($this->get_base_url(), array('questionid' => $question->id));
-        $maxheader[] = "Data generated: ".date("Y-m-d H:i:s");
-        $maximacode = $this->maxima_comment($maxheader);
-        $maximacode .= "\ndisplay2d:true$\nload(\"stackreporting\")$\n";
-        $maximacode .= "stackdata:[]$\n";
-        $variants = array();
-        foreach ($this->qnotes as $qnote) {
-            $variants[] = '"'.$qnote.'"';
-        }
-        $inputs = array();
-        foreach ($this->inputs as $input) {
-            $inputs[] = $input;
-        }
-        $anymaximadata = false;
+        $table->head = $head;
+        
+        $submissions = $A->all_submissions_sorted;
 
-
-        // Maxima analysis at the end.
-        if ($anymaximadata) {
-            $maximacode .= "\n/* Reset input names */\nkill(" . implode(',', $inputs) . ")$\n";
-            $maximacode .= $this->maxima_list_create($variants, 'variants');
-            $maximacode .= $this->maxima_list_create($inputs, 'inputs');
-            $maximacode .= "\n/* Perform the analysis. */\nstack_analysis(stackdata)$\n";
-            echo html_writer::tag('h3', get_string('maximacode', 'quiz_stacksheffield'));
-            echo html_writer::tag('p', get_string('offlineanalysis', 'quiz_stacksheffield'));
-            $rows = count(explode("\n", $maximacode)) + 2;
-            echo html_writer::tag('textarea', $maximacode,
-                    array('readonly' => 'readonly', 'wrap' => 'virtual', 'rows' => $rows, 'cols' => '160'));
+        if (! $this->table_options->includeunmarked) {
+            $submissions = array_filter($submissions, fn($s) => $s->is_marked);
         }
+        
+        $tree = \quiz_stacksheffield\question_analysis::make_tree($keys,$submissions);
+
+        $flat = \quiz_stacksheffield\question_analysis::flatten_tree($keys,$tree);
+
+        if ($this->table_options->orderbyfreq) {
+            \quiz_stacksheffield\question_analysis::sort_count($flat);
+        }
+
+        $n = count($keys);
+        
+        foreach($flat as $s) {
+            $r = array();
+            for ($i = 0; $i < $n; $i++) {
+                $r[] = $s[$i];
+            }
+            $ss = $s[$n];
+            $t = '';
+            $m = min(10,count($ss));
+            for ($j = 0; $j < $m; $j++) {
+                $x = $ss[$j];
+                echo "<pre>"; var_dump($x); echo "</pre>"; exit;
+            }
+            $r[] = $t;
+            $table->data[] = $r;
+        }
+
+        echo html_writer::table($table);        
+         
     }
 
 
     /*
      * This function simply prints out some useful information about the question.
      */
-    private function display_question_information($question) {
+    private function display_question_information() {
         global $OUTPUT;
+
+        $question = $this->question;
         $opts = $question->options;
 
-        echo $OUTPUT->heading($question->name, 3);
+        $edit_url = new \moodle_url('/question/question.php', array(
+                'cmid' => $this->cm->id, 'id' => $question->id));
+        $edit_icon = $OUTPUT->pix_icon('t/edit', '', 'moodle', array('title' => ''));
+        $edit_link = html_writer::link($edit_url,$edit_icon);
 
+        $preview_url = quiz_question_preview_url($this->quiz,$this->question);
+        $preview_icon = $OUTPUT->pix_icon('t/preview',get_string('previewquestion', 'quiz'));
+        $preview_action = new \popup_action('click', $preview_url, 'questionpreview',
+                                            question_preview_popup_params());
+        $preview_link = $OUTPUT->action_link($preview_url,$preview_icon,$preview_action);
+                      
+        echo $OUTPUT->heading($edit_link . ' ' .
+                              $preview_link . ' ' .
+                              $question->name, 3);
+
+        
         // Display the question variables.
-        echo $OUTPUT->heading(stack_string('questionvariables'), 3);
+        echo $OUTPUT->heading(get_string('questioncode','quiz_stacksheffield'), 3);
         echo html_writer::start_tag('div', array('class' => 'questionvariables'));
-        echo  html_writer::tag('pre', htmlspecialchars($opts->questionvariables));
+        echo $this->questioncode;
         echo html_writer::end_tag('div');
 
         echo $OUTPUT->heading(stack_string('questiontext'), 3);
-        echo html_writer::tag('div', html_writer::tag('div', stack_ouput_castext($question->questiontext),
+        echo html_writer::tag('div',
+                              html_writer::tag('div',
+                                               stack_ouput_castext($question->questiontext),
         array('class' => 'outcome generalfeedback')), array('class' => 'que'));
 
-        echo $OUTPUT->heading(stack_string('generalfeedback'), 3);
-        echo html_writer::tag('div', html_writer::tag('div', stack_ouput_castext($question->generalfeedback),
-        array('class' => 'outcome generalfeedback')), array('class' => 'que'));
+        if (trim($question->generalfeedback)) {
+            echo $OUTPUT->heading(stack_string('generalfeedback'), 3);
+            echo html_writer::tag('div',
+                                  html_writer::tag('div',
+                                                   stack_ouput_castext($question->generalfeedback),
+                                                   array('class' => 'outcome generalfeedback')),
+                                  array('class' => 'que'));
+        }
 
         echo $OUTPUT->heading(stack_string('questionnote'), 3);
-        echo html_writer::tag('div', html_writer::tag('div', stack_ouput_castext($opts->questionnote),
-        array('class' => 'outcome generalfeedback')), array('class' => 'que'));
+        echo html_writer::tag('div',
+                              html_writer::tag('div',
+                                               stack_ouput_castext($opts->questionnote),
+                                               array('class' => 'outcome generalfeedback')),
+                              array('class' => 'que'));
 
         echo $OUTPUT->heading(get_string('pluginname', 'quiz_stacksheffield'), 3);
-    }
-
-    /*
-     * Take an array of numbers and create an array containing %s for each column.
-     */
-    private function column_stats($data) {
-        $rdata = array();
-        foreach ($data as $anote => $a) {
-            $rdata[$anote] = array_merge(array_values($a), array(array_sum($a)));
-        }
-        reset($data);
-        $coltotal = array_fill(0, count(current($data)) + 1, 0);
-        foreach ($rdata as $anote => $row) {
-            foreach ($row as $key => $col) {
-                $coltotal[$key] += $col;
-            }
-        }
-        foreach ($rdata as $anote => $row) {
-            foreach ($row as $key => $col) {
-                if (0 != $coltotal[$key]) {
-                    $rdata[$anote][$key] = round(100 * $col / $coltotal[$key], 1);
-                }
-            }
-        }
-        return $rdata;
-    }
-
-
-    /**
-     * Takes an array of $data and a $listname and creates maxima code for a list assigned to the name $listname.
-     * This splits up very long lists into reasonable size lists so as not to overflow maxima input.
-     */
-    private function maxima_list_create($data, $listname) {
-        if (empty($data)) {
-            return '';
-        }
-
-        $concatarray = array();
-        $toolong = false;
-        $maximacode = '';
-        foreach ($data as $val) {
-            $concatarray[] = $val;
-            $cct = implode(',',$concatarray);
-            // This ensures we don't have one entry for each differenet input, leading to impossibly long sessions.
-            if (strlen($cct) > 100) {
-                $toolong = true;
-                $maximacode .= $listname.':append('.$listname.',['.$cct."])$\n";
-                $concatarray = array();
-            }
-        }
-        if ($toolong) {
-            if (empty($concatarray)) {
-                $maximacode = $listname.":[]$\n".$maximacode;
-            } else {
-                $maximacode = $listname.":[]$\n".$maximacode.$listname.':append('.$listname.',['.$cct."])$\n";
-            }
-        } else {
-            $maximacode = $listname.':['.$cct."]$\n";
-        }
-        return $maximacode;
-    }
-
-    /**
-     * Takes an array of strings and generates a formatted Maxima comment block.
-     */
-    private function maxima_comment($data) {
-        if (empty($data)) {
-            return '';
-        }
-
-        $l = 0;
-        foreach ($data as $k => $h) {
-            $l = max(strlen($h), $l);
-        }
-        $comment = str_pad('/**', $l + 3, '*') . "**/\n";
-        $maximacode = $comment;
-        foreach ($data as $k => $h) {
-            // Warning: pad_str doesn't work here.
-            $offset = substr_count($h, '&') * 4;
-            $maximacode .= '/* '.$h.str_repeat(' ', $l - strlen($h) + $offset)." */\n";
-        }
-        $maximacode .= $comment;
-        return $maximacode;
     }
 }

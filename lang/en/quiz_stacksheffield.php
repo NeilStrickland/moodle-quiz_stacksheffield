@@ -42,5 +42,6 @@ $string['completenotes'] = 'This table is a summary of the frequency of each com
 $string['splitnotes'] = 'This table is a summary of the frequency of each split answer note to show the frequency each branch of each tree is traversed.';
 
 $string['maximacode'] = 'Maxima code';
+$string['questioncode'] = 'Question code';
 $string['offlineanalysis'] = 'This code can be copied into Maxima for off-line analysis.';
 $string['privacy:metadata'] = 'The STACK response analysis plugin does not store any personal data.';

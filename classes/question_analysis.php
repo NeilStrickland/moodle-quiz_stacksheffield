@@ -16,7 +16,7 @@
 
 namespace quiz_stacksheffield;
 
-defined('MOODLE_INTERNAL') || die();
+//defined('MOODLE_INTERNAL') || die();
 
 /**
  *
@@ -27,12 +27,16 @@ defined('MOODLE_INTERNAL') || die();
 
 
 class question_analysis {
+ var $question = null;
  var $question_id = null;
  
- function __construct($id) {
-  $this->question_id = $id;
+ function __construct($question) {
+  $this->question = $question;
+  $this->question_id = $question->id;
   $this->attempts = array();
   $this->attempts_by_id = array();
+
+  self::prepare_question($this->question);
  }
 
  function add_data($x) {
@@ -40,10 +44,12 @@ class question_analysis {
    $a = $this->attempts_by_id[$x->attempt_id];
   } else {
    if ($this->attempts) {
-    $a0 = last_entry($this->attempts);
+    $a0 = self::last_entry($this->attempts);
     $a0->finalise();
    }
-   $a = new question_attempt_analysis($x->attempt_id);
+   $a = new question_attempt_analysis($this->question,
+                                      $x->attempt_id,
+                                      $x->question_note);
    $this->attempts[] = $a;
    $this->attempts_by_id[$x->attempt_id] = $a;
   }
@@ -53,7 +59,7 @@ class question_analysis {
 
  function finalise() {
   if ($this->attempts) {
-   $a0 = last_entry($this->attempts);
+   $a0 = self::last_entry($this->attempts);
    $a0->finalise();
   }  
  }
@@ -79,11 +85,15 @@ class question_analysis {
   $this->first_submissions_sorted = $this->first_submissions;
   $this->last_submissions_sorted  = $this->last_submissions;
 
-  $comp = array('question_analysis','compare_submissions');
+  $comp = array('\quiz_stacksheffield\question_analysis','compare_submissions');
   
   usort($this->all_submissions_sorted  ,$comp);
   usort($this->first_submissions_sorted,$comp);
   usort($this->last_submissions_sorted ,$comp);
+
+  $keys = array('raw_fraction','note','answer');
+  $this->all_submissions_tree = self::make_tree($keys,$this->all_submissions_sorted);
+  $this->all_submissions_flat = self::flatten_tree($keys,$this->all_submissions_tree);
  }
 
  static function strip_prefix($s,$prefix) {
@@ -104,6 +114,36 @@ class question_analysis {
   }
  }
 
+ static function prepare_question($question) {
+  $question->is_randomised = 0;
+  $question->has_note = trim($question->options->questionnote) ? 1 : 0;
+  
+  $mc_inputs = array();
+  
+  foreach($question->inputs as $i) {
+   $i->is_mc = 0;
+   
+   if ($i->type == 'checkbox' ||
+       $i->type == 'radio' ||
+       $i->type == 'dropdown') {
+    $i->is_mc = 1;
+    $i->num_options = 0;
+    $i->num_options_used = 0;
+    $i->is_permuted = 0;
+    $mc_inputs[] = $i;
+   }
+  }
+
+  $question->is_permuted = 0;
+  
+  if (trim($question->options->questionnote) == '{#perm#}') {
+   $question->is_permuted = 1;
+   if (count($mc_inputs) == 1) {
+    $mc_inputs[0]->is_permuted = 1;
+   }
+  }
+ }
+ 
  static function compare_submissions($a,$b) {
   $x = strcmp($a->raw_fraction,$b->raw_fraction);
   if ($x) { return $x; }
@@ -115,5 +155,62 @@ class question_analysis {
   if ($x) { return $x; }
   
   return intval($a->step_id) - intval($b->step_id);
+ }
+
+ static function tree_count($x) {
+  if (is_array($x)) {
+   $n = 0;
+   foreach ($x as $y) { $n += self::tree_count($y); }
+  } else {
+   return 1;
+  }
+ }
+
+ static function make_tree($keys,$xx) {
+  if ($keys) {
+   $keys0 = $keys;
+   $key = array_shift($keys0);
+   $xx0 = array();
+   foreach($xx as $x) {
+    if (! isset($xx0[$x->$key])) {
+     $xx0[$x->$key] = array();
+    }
+    $xx0[$x->$key][] = $x;
+   }
+   $xx1 = array();
+   foreach($xx0 as $k => $yy) {
+    $xx1[$k] = self::make_tree($keys0,$yy);
+   }
+   return($xx1);
+  } else {
+   return $xx;
+  }
+ }
+
+ static function flatten_tree($keys,$xx) {
+  if ($keys) {
+   $tt = array();
+   $keys0 = $keys;
+   $key = array_shift($keys0);
+   foreach($xx as $k => $yy) {
+    $f = function($v) use ($k) { return array_merge(array($k),$v); };
+    $tt = array_merge($tt,array_map($f,self::flatten_tree($keys0,$xx[$k])));
+   }
+   return $tt;
+  } else {
+   return array(array($xx));
+  }
+ }
+
+ static function compare_count($x,$y) {
+  $n = count($x);
+  $m = count($y);
+  $a = count($x[$n-1]);
+  $b = count($y[$m-1]);
+  return $b - $a;
+ }
+
+ static function sort_count(&$xx) {
+  usort($xx,array('\quiz_stacksheffield\question_analysis','compare_count'));
  }
 }

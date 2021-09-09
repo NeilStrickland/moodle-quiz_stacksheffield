@@ -27,24 +27,43 @@ defined('MOODLE_INTERNAL') || die();
 
 
 class question_attempt_step_analysis {
+ var $question = null;
  var $step_id = null;
+ var $sequence_number = null;
+ var $question_note = null;
+ var $perm = null;
  var $is_submission = null;
+ var $is_marked = null;
  var $is_first_submission = null;
  var $is_last_submission = null;
  var $answer = null;
  var $note = null;
+ var $seed = null;
  
- function __construct($id) {
+ function __construct($question,$id,$seq,$question_note='',$perm = null) {
+  $this->question = $question;
+  $this->question_note = $question_note;
+  $this->perm = $perm;
   $this->step_id = $id;
+  $this->sequence_number = $seq;
   $this->data = array();
   $this->data_index = array();
-  $this->answers = array();
-  $this->notes = array();
-  $this->raw_fractions = array();
-  $this->fractions = array();
+  $this->answers_by_input = array();
   $this->notes_by_prt = array();
   $this->raw_fractions_by_prt = array();
   $this->fractions_by_prt = array();
+
+  foreach($question->inputs as $i) {
+   $n = $i->name;
+   $this->answers_by_input[$n] = null;
+  }
+
+  foreach($question->prts as $p) {
+   $n = $p->name;
+   $this->notes_by_prt[$n] = null;
+   $this->raw_fractions_by_prt[$n] = null;
+   $this->fractions_by_prt[$n] = null;
+  }  
  }
   
  function add_data($x) {
@@ -58,21 +77,20 @@ class question_attempt_step_analysis {
    }
 
    if (question_analysis::strip_prefix($n,'-_') === false) {
-    $this->answers[] = $v;
+    if (array_key_exists($n,$this->answers_by_input)) {
+     $this->answers_by_input[$n] = $v;
+    }
    } else {
     $k = question_analysis::strip_prefix($n,'-_note_');
     if ($k !== false) {
-     $this->notes[] = $v;
      $this->notes_by_prt[$k] = $v;
     }
     $k = question_analysis::strip_prefix($n,'-_fraction_');
     if ($k !== false) {
-     $this->fractions[] = $v;
      $this->fractions_by_prt[$k] = $v;
     }
     $k = question_analysis::strip_prefix($n,'-_rawfraction_');
     if ($k !== false) {
-     $this->raw_fractions[] = $v;
      $this->raw_fractions_by_prt[$k] = $v;
     }
    }
@@ -80,9 +98,59 @@ class question_attempt_step_analysis {
  }
 
  function finalise() {
-  $this->answer       = implode(' | ',$this->answers);
-  $this->note         = implode(' | ',$this->notes);
-  $this->fraction     = implode(' | ',$this->fractions);
-  $this->raw_fraction = implode(' | ',$this->raw_fractions);
+  $q = $this->question;
+  $di = $this->data_index;
+  
+  $this->is_submission = array_key_exists('-submit',$di);   
+
+  if (array_key_exists('_seed',$di)) {
+   $this->seed = $di['_seed'];
+  }
+  
+  $this->is_marked = true;
+  
+  foreach($q->prts as $prt) {
+   $k = $prt->name;
+   $kn = '-_note_' . $k;
+   $kf = '-_fraction_' . $k;
+   $kr = '-_rawfraction_' . $k;
+   
+   if (array_key_exists($kn,$di)) { $this->notes_by_prt[$k] = $di[$kn]; }
+   if (array_key_exists($kf,$di)) { $this->fractions_by_prt[$k] = $di[$kf]; }
+   if (array_key_exists($kr,$di)) {
+    $this->raw_fractions_by_prt[$k] = $di[$kr];
+   } else {
+    $this->is_marked = false;
+   }
+  }
+
+  foreach($q->inputs as $i) {
+   if ($i->is_mc) {
+    $answers = array();
+    foreach($di as $k => $v) {
+     if ($k == $i->name . '_' . $v) {
+      $vi = (int) $v;
+      if ($this->perm) { $vi = $this->perm[$vi]; }
+      $i->num_options = max($i->num_options,$vi);
+      $answers[] = $vi;
+     }
+    }
+    sort($answers);
+    $answer = implode(',',$answers);
+    if ($i->type == 'checkbox') {
+     $answer = '{' . $answer . '}';
+    }
+    $this->answers_by_input[$i->name] = $answer;
+   } else {
+    if (array_key_exists($i->name,$di)) {
+     $this->answers_by_input[$i->name] = $di[$i->name];
+    }
+   }
+  }
+  
+  $this->answer       = implode(' | ',$this->answers_by_input);
+  $this->note         = implode(' | ',$this->notes_by_prt);
+  $this->fraction     = implode(' | ',$this->fractions_by_prt);
+  $this->raw_fraction = implode(' | ',$this->raw_fractions_by_prt);
  }
 }
