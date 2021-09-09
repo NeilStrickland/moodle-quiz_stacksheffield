@@ -244,10 +244,14 @@ SELECT
  s.sequencenumber,
  s.state,
  b.id AS attempt_id,
- b.questionsummary AS question_note
+ b.questionsummary AS question_note,
+ b.slot,
+ b.questionusageid AS question_usage_id,
+ a.id AS quiz_attempt_id 
 FROM mdl_question_attempt_step_data d
 LEFT JOIN mdl_question_attempt_steps s ON d.attemptstepid=s.id
 LEFT JOIN mdl_question_attempts b ON s.questionattemptid=b.id
+LEFT JOIN mdl_quiz_attempts a ON a.uniqueid = b.questionusageid
 WHERE b.questionid=:question_id
 SQL;
 

@@ -28,6 +28,7 @@ defined('MOODLE_INTERNAL') || die();
 
 class question_attempt_step_analysis {
  var $question = null;
+ var $attempt_id;
  var $step_id = null;
  var $sequence_number = null;
  var $question_note = null;
@@ -40,10 +41,11 @@ class question_attempt_step_analysis {
  var $note = null;
  var $seed = null;
  
- function __construct($question,$id,$seq,$question_note='',$perm = null) {
+ function __construct($question,$id,$seq,$question_note='',$perm = null,$attempt_id = null) {
   $this->question = $question;
   $this->question_note = $question_note;
   $this->perm = $perm;
+  $this->attempt_id = $attempt_id;
   $this->step_id = $id;
   $this->sequence_number = $seq;
   $this->data = array();

@@ -72,7 +72,8 @@ class question_attempt_analysis {
    $s = new question_attempt_step_analysis($this->question,
                                            (int) $x->step_id,
                                            $this->question_note,
-                                           $this->perm);
+                                           $this->perm,
+                                           $this->attempt_id);
    $this->steps[] = $s;
    $this->steps_by_id[$x->step_id] = $s;
    $s->sequence_number = (int) $x->sequencenumber;
