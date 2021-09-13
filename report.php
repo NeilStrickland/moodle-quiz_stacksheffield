@@ -292,7 +292,22 @@ SQL;
             }
         }
         
-        $O->includeunmarked = optional_param('includeunmarked',false,PARAM_BOOL);
+        $O->include_all     = 0;
+        $O->include_initial = 0;
+        $O->include_final   = 0;
+
+        $include = optional_param('include','',PARAM_RAW);
+        if ($include == 'initial') {
+         $O->include = 'initial';
+         $O->include_initial = 1;
+        } elseif ($include == 'final') {
+         $O->include = 'final';
+         $O->include_final = 1;
+        } else {
+         $O->include = 'all';
+         $O->include_all = 1;
+        }
+        
         $this->table_options = $O;
     }
     
@@ -348,9 +363,17 @@ SQL;
         
         $table->head = $head;
         
-        $submissions = $A->all_submissions_sorted;
+        if ($this->table_options->include == 'initial') {
+         $submissions = $A->initial_submissions_sorted;
+        } elseif ($this->table_options->include == 'final') {
+         $submissions = $A->final_submissions_sorted;
+        } else {
+         $submissions = $A->all_submissions_sorted;
+        }
 
-        if (! $this->table_options->includeunmarked) {
+        // There used to be a checkbox for this.  Perhaps it should
+        // be reinstated.
+        if (true) {
             $submissions = array_filter($submissions, fn($s) => $s->is_marked);
         }
         

@@ -37,8 +37,8 @@ class question_attempt_step_analysis {
  var $slot = null;
  var $is_submission = null;
  var $is_marked = null;
- var $is_first_submission = null;
- var $is_last_submission = null;
+ var $is_initial_submission = null;
+ var $is_final_submission = null;
  var $answer = null;
  var $note = null;
  var $seed = null;

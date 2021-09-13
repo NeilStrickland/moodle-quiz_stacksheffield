@@ -111,15 +111,15 @@ class question_attempt_analysis {
 
   if ($this->submissions) {
    $s = $this->submissions[0];
-   $s->is_first_submission = true;
-   $this->first_submission = $s;
+   $s->is_initial_submission = true;
+   $this->initial_submission = $s;
    
    $s = question_analysis::last_entry($this->submissions);
-   $s->is_last_submission = true;
-   $this->last_submission = $s;
+   $s->is_final_submission = true;
+   $this->final_submission = $s;
   } else {
-   $this->first_submission = null;
-   $this->last_submission = null;
+   $this->initial_submission = null;
+   $this->final_submission = null;
   }
  }
 }

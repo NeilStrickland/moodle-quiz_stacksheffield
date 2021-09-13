@@ -103,30 +103,30 @@ class question_analysis {
   }
   
   $this->all_submissions   = array();
-  $this->first_submissions = array();
-  $this->last_submissions  = array();
+  $this->initial_submissions = array();
+  $this->final_submissions  = array();
 
   foreach ($this->attempts as $a) {
    foreach ($a->submissions as $s) {
     $this->all_submissions[] = $s;
-    if ($s->is_first_submission) {
-     $this->first_submissions[] = $s;
+    if ($s->is_initial_submission) {
+     $this->initial_submissions[] = $s;
     }
-    if ($s->is_last_submission) {
-     $this->last_submissions[] = $s;
+    if ($s->is_final_submission) {
+     $this->final_submissions[] = $s;
     }
    }
   }
 
   $this->all_submissions_sorted   = $this->all_submissions;
-  $this->first_submissions_sorted = $this->first_submissions;
-  $this->last_submissions_sorted  = $this->last_submissions;
+  $this->initial_submissions_sorted = $this->initial_submissions;
+  $this->final_submissions_sorted  = $this->final_submissions;
 
   $comp = array('\quiz_stacksheffield\question_analysis','compare_submissions');
   
   usort($this->all_submissions_sorted  ,$comp);
-  usort($this->first_submissions_sorted,$comp);
-  usort($this->last_submissions_sorted ,$comp);
+  usort($this->initial_submissions_sorted,$comp);
+  usort($this->final_submissions_sorted ,$comp);
 
   $keys = array('raw_fraction','note','answer');
   $this->all_submissions_tree = self::make_tree($keys,$this->all_submissions_sorted);
