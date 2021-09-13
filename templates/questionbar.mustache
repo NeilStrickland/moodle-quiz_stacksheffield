@@ -1,0 +1,9 @@
+<div class="initialbargroups d-flex flex-wrap justify-content-center justify-content-md-start">
+  <ul class="pagination pagination-sm">
+    {{#question}}
+      <li class="page-item{{#active}} active{{/active}}">
+        <a class="page-link" href="{{{url}}}" title="{{name}}">{{code}}</a>
+      </li>
+    {{/question}}
+  </ul>
+</div>
