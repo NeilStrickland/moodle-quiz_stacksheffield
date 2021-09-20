@@ -389,9 +389,13 @@ SQL;
         $n = count($keys);
 
         $clickhandler = <<<JS
-function() { event.target.style.color = "#6666AA"; }
+event.target.style.color = "#88EE88";
 JS
                       ;
+
+        $full_count = 0;
+	foreach($flat as $s) { $full_count += count($s[$n]); }
+	
         foreach($flat as $s) {
             $r = array();
             for ($i = 0; $i < $n; $i++) {
@@ -409,15 +413,17 @@ JS
                                              'step' => $x->sequence_number));
                 $action = new \popup_action('click', $url, 'reviewquestion',
                                             array('height' => 450,
-                                                  'width' => 650,
-                                                  'onclick' => $clickhandler));
-                $link = $OUTPUT->action_link($url,$j+1,$action);
+                                                  'width' => 650));
+                $link = $OUTPUT->action_link($url,$j+1,$action,
+		                             array('onclick' => $clickhandler));
 
                 $t .= $link . ' ';
             }
             
             $r[] = $t;
-            $r[] = $m0;
+	    $m1 = round((100 * $m0) / $full_count);
+	    
+            $r[] = '' . $m0 . '/' . $full_count . '=' . $m1 . '%';
             $table->data[] = $r;
         }
 
