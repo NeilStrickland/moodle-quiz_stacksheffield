@@ -359,6 +359,7 @@ SQL;
             $head[] = 'Answer';
         }
 
+        $head[] = 'Examples';
         $head[] = 'Count';
         
         $table->head = $head;
@@ -386,7 +387,11 @@ SQL;
         }
 
         $n = count($keys);
-        
+
+        $clickhandler = <<<JS
+function() { event.target.style.color = "#6666AA"; }
+JS
+                      ;
         foreach($flat as $s) {
             $r = array();
             for ($i = 0; $i < $n; $i++) {
@@ -403,16 +408,16 @@ SQL;
                                              'slot' => $x->slot,
                                              'step' => $x->sequence_number));
                 $action = new \popup_action('click', $url, 'reviewquestion',
-                                            array('height' => 450, 'width' => 650));
+                                            array('height' => 450,
+                                                  'width' => 650,
+                                                  'onclick' => $clickhandler));
                 $link = $OUTPUT->action_link($url,$j+1,$action);
 
                 $t .= $link . ' ';
             }
-            if ($m0 > 9) {
-                $t .= '[' . $m0 . ']';
-            }
             
             $r[] = $t;
+            $r[] = $m0;
             $table->data[] = $r;
         }
 
