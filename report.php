@@ -40,6 +40,10 @@ require_once($CFG->dirroot .
              '/mod/quiz/report/stacksheffield/classes/' .
              'question_attempt_step_analysis.php');
 
+require_once($CFG->dirroot .
+             '/mod/quiz/report/stacksheffield/classes/' .
+             'chain_link.php');
+
 /**
  * Report subclass for the responses report to individual stack questions.
  *
@@ -159,8 +163,10 @@ SQL;
         global $OUTPUT;
 
         $baseurl = $this->get_base_url();
-        echo $OUTPUT->heading(get_string('stackquestionsinthisquiz', 'quiz_stacksheffield'));
-        echo html_writer::tag('p', get_string('stackquestionsinthisquiz_descript', 'quiz_stacksheffield'));
+        echo $OUTPUT->heading(get_string('stackquestionsinthisquiz',
+                                         'quiz_stacksheffield'));
+        echo html_writer::tag('p', get_string('stackquestionsinthisquiz_descript',
+                                              'quiz_stacksheffield'));
 
         echo html_writer::start_tag('ul');
         foreach ($this->stack_questions_used_in_attempt as $question) {
@@ -325,7 +331,11 @@ SQL;
         $this->get_table_options();
         
         $this->display_index_bar();
+
         $this->display_question_information();
+
+        echo $OUTPUT->heading('Response analysis', 3);
+
         $this->display_table_options();
             
         // Setup useful internal arrays for report generation.
@@ -394,43 +404,90 @@ JS
                       ;
 
         $full_count = 0;
-	foreach($flat as $s) { $full_count += count($s[$n]); }
-	
+        foreach($flat as $s) { $full_count += count($s[$n]); }
+ 
         foreach($flat as $s) {
             $r = array();
             for ($i = 0; $i < $n; $i++) {
                 $r[] = $s[$i];
             }
             $ss = $s[$n];
-            $t = '';
             $m0 = count($ss);
-            $m = min(9,$m0);
-            for ($j = 0; $j < $m; $j++) {
-                $x = $ss[$j];
-                $url = new \moodle_url('/mod/quiz/reviewquestion.php',
-                                       array('attempt' => $x->quiz_attempt_id,
-                                             'slot' => $x->slot,
-                                             'step' => $x->sequence_number));
-                $action = new \popup_action('click', $url, 'reviewquestion',
-                                            array('height' => 450,
-                                                  'width' => 650));
-                $link = $OUTPUT->action_link($url,$j+1,$action,
-		                             array('onclick' => $clickhandler));
-
-                $t .= $link . ' ';
-            }
             
-            $r[] = $t;
-	    $m1 = round((100 * $m0) / $full_count);
-	    
+            $r[] = $this->preview_bar($ss);
+            $m1 = round((100 * $m0) / $full_count);
+     
             $r[] = '' . $m0 . '/' . $full_count . '=' . $m1 . '%';
             $table->data[] = $r;
         }
 
         echo html_writer::table($table);        
-         
+
+        $table = new html_table();
+        $table->attributes['class'] = 'quiv-stacksheffield-chaintable';
+
+        $C = $A->note_chains->flatten();
+
+        
+        foreach($C as $c) {
+            $r = array();
+            foreach($c as $x) {
+                if ($x) {
+                    $n = $x->note . '<br/>';
+                    if ($x->seq == 1) {
+                        $n .= sprintf('%1.2f',$x->proportion);
+                    } else {
+                        $n .= '*' . sprintf('%1.2f',$x->immediate_proportion) .
+                              '=' . sprintf('%1.2f',$x->proportion);
+                    }
+
+                    $ss = $x->final_submissions + $x->nonfinal_submissions;
+                    $n .= '<br/>' . $this->preview_bar($ss);
+                    $cell = new html_table_cell($n);
+                    $r[] = $cell;
+                } else {
+                    $cell = new html_table_cell('');
+                    $cell->attributes['class'] = 'empty';
+                    $r[] = $cell;
+                }
+            }
+            $table->data[] = $r;
+        }
+
+        echo $OUTPUT->heading('Note chains', 3);
+
+        echo html_writer::table($table);        
     }
 
+
+    function preview_bar($ss) {
+        global $OUTPUT;
+
+        $clickhandler = <<<JS
+event.target.style.color = "#88EE88";
+JS
+                      ;
+
+        $t = '';
+        $m0 = count($ss);
+        $m = min(9,$m0);
+        for ($j = 0; $j < $m; $j++) {
+            $x = $ss[$j];
+            $url = new \moodle_url('/mod/quiz/reviewquestion.php',
+                                   array('attempt' => $x->quiz_attempt_id,
+                                         'slot' => $x->slot,
+                                         'step' => $x->sequence_number));
+            $action = new \popup_action('click', $url, 'reviewquestion',
+                                        array('height' => 450,
+                                              'width' => 650));
+            $link = $OUTPUT->action_link($url,$j+1,$action,
+                                         array('onclick' => $clickhandler));
+            
+            $t .= $link . ' ';
+        }
+
+        return $t;
+    }
 
     /*
      * This function simply prints out some useful information about the question.
@@ -485,6 +542,5 @@ JS
                                                array('class' => 'outcome generalfeedback')),
                               array('class' => 'que'));
 
-        echo $OUTPUT->heading(get_string('pluginname', 'quiz_stacksheffield'), 3);
     }
 }

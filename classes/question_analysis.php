@@ -26,6 +26,10 @@ namespace quiz_stacksheffield;
  */
 
 
+require_once($CFG->dirroot .
+             '/mod/quiz/report/stacksheffield/classes/' .
+             'chain_link.php');
+
 class question_analysis {
  var $question = null;
  var $question_id = null;
@@ -131,6 +135,14 @@ class question_analysis {
   $keys = array('raw_fraction','note','answer');
   $this->all_submissions_tree = self::make_tree($keys,$this->all_submissions_sorted);
   $this->all_submissions_flat = self::flatten_tree($keys,$this->all_submissions_tree);
+
+  $this->note_chains = new chain_link();
+
+  foreach($this->attempts as $a) {
+   $this->note_chains->add_attempt($a);
+  }
+
+  $this->note_chains->collate();
  }
 
  static function strip_prefix($s,$prefix) {

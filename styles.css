@@ -1,3 +1,21 @@
 div.quiv-stacksheffield-tableoptions label {
     padding: 5px;
 }
+
+table.quiv-stacksheffield-chaintable {
+    width: auto;
+    border-collapse : separate;
+}
+
+table.quiv-stacksheffield-chaintable td {
+    background-color: #EEEEEE;
+    border : 1px solid #666666;
+    min-width: 150px;
+    min-height: 20px;
+}
+
+table.quiv-stacksheffield-chaintable td.empty {
+    background-color: #FFFFFF;
+    border : none;
+}
+
