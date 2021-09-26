@@ -101,9 +101,40 @@ class question_analysis {
   }
  }
  
+ function has_default_marking() {
+  foreach ($this->attempts as $a) {
+   foreach ($a->submissions as $s) {
+    $n = $s->note;
+    $m = $s->raw_fraction;
+    if ($n && ! (($n == 'prt1-1-T' && $m == 1) ||
+                 ($n == 'prt1-1-F' && $m == 0))) {
+     return false;
+    }
+   }
+  }  
+
+  return true;
+ }
+
+ function convert_default_marking() {
+  foreach ($this->attempts as $a) {
+   foreach ($a->submissions as $s) {
+    $n = $s->note;
+    if ($n == 'prt1-1-T') { $s->note = 'correct'; }
+    if ($n == 'prt1-1-F') { $s->note = 'incorrect'; }
+   }
+  }  
+
+  return true;
+ }
+
  function collate() {
   if ($this->uses_standard_mr_notes()) {
    $this->convert_standard_mr_notes();
+  }
+  
+  if ($this->has_default_marking()) {
+   $this->convert_default_marking();
   }
   
   $this->all_submissions   = array();
