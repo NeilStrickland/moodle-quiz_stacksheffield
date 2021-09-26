@@ -19,3 +19,10 @@ table.quiv-stacksheffield-chaintable td.empty {
     border : none;
 }
 
+div.quiv-stacksheffield-chaintreenode {
+    width : 150px;
+    height : 80px;
+    background-color: #EEE;
+    border: 1px solid #666;
+    padding: 4px;
+}

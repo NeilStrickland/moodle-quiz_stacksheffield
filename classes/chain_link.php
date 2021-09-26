@@ -90,12 +90,12 @@ class chain_link {
   $this->sorted_children = $cc;
  }
 
- function flatten() {
+ function rows() {
   if ($this->sorted_children) {
    $r = array();
    $h = $this;
    foreach($this->sorted_children as $c) {
-    $u = $c->flatten();
+    $u = $c->rows();
     foreach($u as $v) {
      if ($this->seq > 0) { array_unshift($v,$h); }
      $h = null;
@@ -107,6 +107,27 @@ class chain_link {
   } else {
    return array(array($this));
   }
+ }
+ 
+ function set_position($x,$y) {
+  $this->x = $x;
+  $this->y = $y;
+  $this->y_max = $y;
+  $first = 1;
+  foreach ($this->sorted_children as $c) {
+   $this->y_max = $c->set_position($x + 1, $first ? $y : $this->y_max + 1);
+   $first = 0;
+  }
+
+  return $this->y_max;
+ }
+
+ function flatten() {
+  $f = array($this);
+  foreach ($this->sorted_children as $c) {
+   $f = array_merge($f,$c->flatten());
+  }
+  return $f;
  }
  
  static function compare_count($a,$b) {

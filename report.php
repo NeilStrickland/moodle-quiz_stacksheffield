@@ -421,28 +421,44 @@ JS
             $table->data[] = $r;
         }
 
+        echo html_writer::table($table);
+
+        echo $OUTPUT->heading('Note chains', 3);
+
+//        $this->chain_table($A);
+        $this->chain_tree($A);
+    }
+
+    function chain_node_contents($x) {
+        if (! $x) { return ''; }
+
+        $n = $x->note . '<br/>';
+        if ($x->seq == 1) {
+            $n .= sprintf('%1.2f',$x->proportion);
+        } else {
+            $n .= '*' . sprintf('%1.2f',$x->immediate_proportion) .
+               '=' . sprintf('%1.2f',$x->proportion);
+        }
+
+        $ss = $x->final_submissions + $x->nonfinal_submissions;
+        $n .= '<br/>' . $this->preview_bar($ss);
+
+        return $n;
+    }
+    
+    function chain_table($A) {
         echo html_writer::table($table);        
 
         $table = new html_table();
         $table->attributes['class'] = 'quiv-stacksheffield-chaintable';
 
-        $C = $A->note_chains->flatten();
-
+        $C = $A->note_chains->rows();
         
         foreach($C as $c) {
             $r = array();
             foreach($c as $x) {
                 if ($x) {
-                    $n = $x->note . '<br/>';
-                    if ($x->seq == 1) {
-                        $n .= sprintf('%1.2f',$x->proportion);
-                    } else {
-                        $n .= '*' . sprintf('%1.2f',$x->immediate_proportion) .
-                              '=' . sprintf('%1.2f',$x->proportion);
-                    }
-
-                    $ss = $x->final_submissions + $x->nonfinal_submissions;
-                    $n .= '<br/>' . $this->preview_bar($ss);
+                    $n = $this->chain_node_contents($x);
                     $cell = new html_table_cell($n);
                     $r[] = $cell;
                 } else {
@@ -454,11 +470,77 @@ JS
             $table->data[] = $r;
         }
 
-        echo $OUTPUT->heading('Note chains', 3);
-
-        echo html_writer::table($table);        
+        echo html_writer::table($table);
     }
+    
+    function chain_tree($A) {
+        $box_width = 150;
+        $box_height = 80;
+        $gap_width = 50;
+        $gap_height = 10;
 
+        $A->note_chains->set_position(0,0);
+        $f = $A->note_chains->flatten();
+        $h = "";
+        $x_max = 0;
+        $y_max = 0;
+        foreach($f as $u) {
+            $x_max = max($x_max,$u->x);
+            $y_max = max($y_max,$u->y);
+            $n = $this->chain_node_contents($u);
+            $u->x0 = $u->x * ($box_width + $gap_width) - $box_width;
+            $u->y0 = $u->y * ($box_height + $gap_height);
+            if ($u->x > 0) {
+                $h .= <<<SVG
+ <foreignObject x="{$u->x0}" y="{$u->y0}" width="{$box_width}" height="{$box_height}">
+  <div class="quiv-stacksheffield-chaintreenode">$n</div>  
+ </foreignObject>
+
+SVG;
+            }
+        }
+
+        foreach($f as $u) {
+            if (! $u->sorted_children) { continue; }
+            $x0 = $u->x0 + $box_width;
+            $y0 = $u->y0 + $box_height / 2;
+            $h .= <<<SVG
+ <path d="M {$x0} {$y0} h {$gap_width}" stroke="black"/>
+
+SVG;
+            $nc = count($u->sorted_children);
+            if ($nc == 1) { continue; }
+            $lc = $u->sorted_children[$nc-1];
+            $x0 = $u->x0 + $box_width + $gap_width/2;
+            $y0 = $u->y0 + $box_height / 2;
+            $y1 = $lc->y0 + $box_height / 2;
+            $dy = $y1 - $y0;
+            $h .= <<<SVG
+ <path d="M {$x0} {$y0} v {$dy}" stroke="black"/>
+
+SVG;
+            $dx = $gap_width / 2;
+            for ($i = 1; $i < $nc; $i++) {
+                $c = $u->sorted_children[$i];
+                $y1 = $c->y0 + $box_height / 2;
+            $h .= <<<SVG
+ <path d="M {$x0} {$y1} h {$dx}" stroke="black"/>
+
+SVG;                
+            }
+        }
+
+        $width  = $x_max * $box_width  + $x_max * $gap_width;
+        $height = ($y_max + 1) * $box_height + $y_max * $gap_height;
+        $h = <<<HTML
+<svg width="$width" height="$height" class="quiv-stacksheffield-chaintree">
+$h
+</svg>
+
+HTML;
+
+        echo $h;
+    }
 
     function preview_bar($ss) {
         global $OUTPUT;
