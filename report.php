@@ -86,9 +86,14 @@ class quiz_stacksheffield_report extends quiz_attempts_report {
         // QUIZ_GRADEAVERAGE includes all attempts, irrespective of which one determines the final grade.
         $this->qubaids = quiz_statistics_qubaids_condition($quiz->id, $allowedjoins, QUIZ_GRADEAVERAGE, true);
 
+        $questionid = 0;
         $questionsused = $this->get_stack_questions_used_in_attempt($this->qubaids);
 
-        $questionid = optional_param('questionid', 0, PARAM_INT);
+        if ($questionsused) {
+         $questionid = array_values($questionsused)[0]->id;
+        }
+
+        $questionid = optional_param('questionid', $questionid, PARAM_INT);
 
         // Display the appropriate page.
         $this->print_header_and_tabs($cm, $course, $quiz);
@@ -595,34 +600,52 @@ JS
                               $preview_link . ' ' .
                               $question->name, 3);
 
-        
-        // Display the question variables.
-        echo $OUTPUT->heading(get_string('questioncode','quiz_stacksheffield'), 3);
-        echo html_writer::start_tag('div', array('class' => 'questionvariables'));
-        echo $this->questioncode;
-        echo html_writer::end_tag('div');
-
-        echo $OUTPUT->heading(stack_string('questiontext'), 3);
-        echo html_writer::tag('div',
-                              html_writer::tag('div',
-                                               stack_ouput_castext($question->questiontext),
-        array('class' => 'outcome generalfeedback')), array('class' => 'que'));
-
-        if (trim($question->generalfeedback)) {
-            echo $OUTPUT->heading(stack_string('generalfeedback'), 3);
-            echo html_writer::tag('div',
-                                  html_writer::tag('div',
-                                                   stack_ouput_castext($question->generalfeedback),
-                                                   array('class' => 'outcome generalfeedback')),
-                                  array('class' => 'que'));
+        if (trim($this->questioncode)) {
+            $this->collapsible_box('questioncode','questioncode',$this->questioncode,0);
         }
 
-        echo $OUTPUT->heading(stack_string('questionnote'), 3);
-        echo html_writer::tag('div',
-                              html_writer::tag('div',
-                                               stack_ouput_castext($opts->questionnote),
-                                               array('class' => 'outcome generalfeedback')),
-                              array('class' => 'que'));
+        if (trim($opts->questionnote)) {
+            $this->collapsible_box_castext('questionnote','questionnote',$opts->questionnote,0);
+        }
 
+        $this->collapsible_box_castext('questiontext','questiontext',$question->questiontext,1);
+
+        if (trim($question->generalfeedback)) {
+            $this->collapsible_box_castext('solution','solution',$question->generalfeedback,0);
+        }
+    }
+
+    private function collapsible_box($key,$header,$content,$show = false) {
+        global $OUTPUT;
+        
+        $expandstr = 'Toggle';
+        $expandicon = $OUTPUT->pix_icon('t/switch_plus', $expandstr);
+        $options = array(
+            'id' => $key . '_toggler',
+            'aria-label' => $expandstr,
+            'role' => 'button',
+            'aria-expanded' => $show ? 'true' : 'false',
+            'data-toggle' => 'collapse',
+            'aria-controls' => $key
+        );
+        
+        $expandlink = html_writer::link('#' . $key, $expandicon, $options);
+
+        echo $OUTPUT->heading($expandlink . get_string($header,'quiz_stacksheffield'), 3);
+
+        $class = 'collapse' . ($show ? '.show' : '') . ' ' . $key;
+        echo html_writer::start_tag('div', array('id' => $key,
+                                                 'class' => $class));
+        echo $content;
+        echo html_writer::end_tag('div');
+    }
+
+    private function collapsible_box_castext($key,$header,$content,$show = false) {
+        $c = stack_ouput_castext($content);
+        $c = html_writer::tag('div',$c,
+                              array('class' => 'outcome ' . $key));
+        $c = html_writer::tag('div',$c,array('class' => 'que'));
+
+        $this->collapsible_box($key,$header,$c,$show);
     }
 }
