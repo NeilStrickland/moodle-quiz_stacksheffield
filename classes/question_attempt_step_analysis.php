@@ -42,6 +42,7 @@ class question_attempt_step_analysis {
  var $answer = null;
  var $note = null;
  var $seed = null;
+ var $time_offset = null;
  
  function __construct($question,
                       $id,
