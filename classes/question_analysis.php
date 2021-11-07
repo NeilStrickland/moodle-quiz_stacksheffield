@@ -174,6 +174,10 @@ class question_analysis {
   }
 
   $this->note_chains->collate();
+
+  $this->attempts_by_duration = $this->attempts;
+  usort($this->attempts_by_duration,
+        array('\quiz_stacksheffield\question_analysis','compare_duration'));
  }
 
  static function strip_prefix($s,$prefix) {
@@ -292,5 +296,9 @@ class question_analysis {
 
  static function sort_count(&$xx) {
   usort($xx,array('\quiz_stacksheffield\question_analysis','compare_count'));
+ }
+
+ static function compare_duration($x,$y) {
+  return $x->duration - $y->duration;
  }
 }

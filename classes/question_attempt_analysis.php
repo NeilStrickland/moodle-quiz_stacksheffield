@@ -34,6 +34,8 @@ class question_attempt_analysis {
  var $slot = null;
  var $perm = array();
  var $seed = null;
+ var $start_time = null;
+ var $duration = null;
  
  function __construct($question,$id,$question_note,$quiz_attempt_id,$slot) {
   $this->question = $question;
@@ -72,7 +74,10 @@ class question_attempt_analysis {
    if ($this->steps) {
     $s0 = end($this->steps);
     $s0->finalise();
+   } else {
+    $this->start_time = $x->timecreated;
    }
+   
    $s = new question_attempt_step_analysis($this->question,
                                            (int) $x->step_id,
                                            $this->question_note,
@@ -84,6 +89,7 @@ class question_attempt_analysis {
    $this->steps_by_id[$x->step_id] = $s;
    $s->sequence_number = (int) $x->sequencenumber;
    $s->state = $x->state;
+   $s->time_offset = $x->timecreated - $this->start_time;
   }
 
   if ($x->name == '_seed') {
@@ -117,6 +123,7 @@ class question_attempt_analysis {
    $s = question_analysis::last_entry($this->submissions);
    $s->is_final_submission = true;
    $this->final_submission = $s;
+   $this->duration = $s->time_offset;
   } else {
    $this->initial_submission = null;
    $this->final_submission = null;

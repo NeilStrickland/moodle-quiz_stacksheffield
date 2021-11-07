@@ -254,6 +254,7 @@ SELECT
  s.id AS step_id,
  s.sequencenumber,
  s.state,
+ s.timecreated,
  b.id AS attempt_id,
  b.questionsummary AS question_note,
  b.slot,
@@ -430,8 +431,11 @@ JS
 
         echo $OUTPUT->heading('Note chains', 3);
 
-//        $this->chain_table($A);
         $this->chain_tree($A);
+
+        echo $OUTPUT->heading('Timelines', 3);
+
+        $this->duration_table($A);
     }
 
     function chain_node_contents($x) {
@@ -547,6 +551,41 @@ HTML;
         echo $h;
     }
 
+    function duration_table($A) {
+        global $PAGE,$OUTPUT;
+
+        $ttt = array();
+        
+        foreach($A->attempts_by_duration as $a) {
+            $tt = array();
+            foreach($a->submissions as $s) {
+                $s0 = [$s->time_offset,
+                       (int) $s->quiz_attempt_id,
+                       (int) $s->slot,
+                       $s->sequence_number,
+                       (float) $s->raw_fraction];
+                $tt[] = $s0;
+            }
+            if ($tt) { $ttt[] = $tt; }
+        }
+        $ttts = json_encode($ttt);
+
+        // The prefix quiz_ is appropriate here because that is what
+        // is configured in mod/quiz/db/subplugins.json
+        $PAGE->requires->js_call_amd(
+            'quiz_stacksheffield/timeline_viewer','init');
+        echo <<<HTML
+  <div id="timelines_div"
+   style="width:850px; height: 400px; overflow: auto;"
+   data-timelines="{$ttts}">
+   <svg id="timelines_svg" width="100" height="100">
+   </svg>
+  </div>
+  <div id="timelines_msg" style="width:850px; min-height:30px;"></div>
+
+HTML;
+    }
+    
     function preview_bar($ss) {
         global $OUTPUT;
 
