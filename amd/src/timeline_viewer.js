@@ -40,7 +40,7 @@ define([],function() {
             s.slot = s0[2];
             s.sequence_number = s0[3];
             s.fraction = s0[4];
-            s.url = 'https://aim-dev.shef.ac.uk' +
+            s.url =
                 '/moodle/mod/quiz/reviewquestion.php' +
                 '?attempt=' + s.quiz_attempt_id +
                 '&slot=' + s.slot +
