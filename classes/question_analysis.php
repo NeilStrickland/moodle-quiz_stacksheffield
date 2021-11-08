@@ -106,8 +106,8 @@ class question_analysis {
    foreach ($a->submissions as $s) {
     $n = $s->note;
     $m = $s->raw_fraction;
-    if ($n && ! (($n == 'prt1-1-T' && $m == 1) ||
-                 ($n == 'prt1-1-F' && $m == 0))) {
+    if ($n && ! (($n == 'prt1-0-T' && $m == 1) ||
+                 ($n == 'prt1-0-F' && $m == 0))) {
      return false;
     }
    }
@@ -120,8 +120,8 @@ class question_analysis {
   foreach ($this->attempts as $a) {
    foreach ($a->submissions as $s) {
     $n = $s->note;
-    if ($n == 'prt1-1-T') { $s->note = 'correct'; }
-    if ($n == 'prt1-1-F') { $s->note = 'incorrect'; }
+    if ($n == 'prt1-0-T') { $s->note = 'correct'; }
+    if ($n == 'prt1-0-F') { $s->note = 'incorrect'; }
    }
   }  
 

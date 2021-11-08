@@ -43,5 +43,10 @@ $string['splitnotes'] = 'This table is a summary of the frequency of each split 
 
 $string['maximacode'] = 'Maxima code';
 $string['questioncode'] = 'Question code';
+$string['setupcode'] = 'Question setup code';
+$string['markingcode'] = 'Question marking code';
+$string['questiontext'] = 'Question text';
+$string['solution'] = 'Solution';
+$string['questionnote'] = 'Question note';
 $string['offlineanalysis'] = 'This code can be copied into Maxima for off-line analysis.';
 $string['privacy:metadata'] = 'The STACK response analysis plugin does not store any personal data.';
