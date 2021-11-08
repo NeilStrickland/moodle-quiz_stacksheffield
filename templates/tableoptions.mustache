@@ -1,5 +1,4 @@
-<div class="d-flex flex-wrap quiz-stacksheffield-tableoptions">
-  <form name="tableoptionsform">
+<div class="d-flex flex-wrap quiz-stacksheffield-options">
     <input type="hidden" name="id" value="{{cmid}}"/>
     <input type="hidden" name="questionid" value="{{question_id}}"/>
     <input type="hidden" name="mode" value="stacksheffield"/>
@@ -8,7 +7,7 @@
       <label data-fieldtype="checkbox" class="fitem" style="padding:5px;">
         <input id="splitbymark" name="splitbymark"
           type="checkbox" {{#splitbymark}}checked{{/splitbymark}}
-          onclick="document.tableoptionsform.submit()"/>
+          onclick="document.optionsform.submit()"/>
           Mark
       </label>
     </span>
@@ -16,7 +15,7 @@
       <label data-fieldtype="checkbox" class="fitem" style="padding:5px;">
         <input id="splitbyanswernote" name="splitbyanswernote"
           type="checkbox" {{#splitbyanswernote}}checked{{/splitbyanswernote}}
-          onclick="document.tableoptionsform.submit()"/>
+          onclick="document.optionsform.submit()"/>
           Answer note
       </label>
     </span>
@@ -24,7 +23,7 @@
       <label data-fieldtype="checkbox" class="fitem" style="padding:5px;">
         <input id="splitbyanswer" name="splitbyanswer"
           type="checkbox" {{#splitbyanswer}}checked{{/splitbyanswer}}
-          onclick="document.tableoptionsform.submit()"/>
+          onclick="document.optionsform.submit()"/>
           Answer
       </label>
     </span>
@@ -33,7 +32,7 @@
       <label data-fieldtype="checkbox" class="fitem" style="padding:5px;">
         <input id="orderbyfreq" value="orderbyfreq" name="roworder" 
           type="radio" {{#orderbyfreq}}checked{{/orderbyfreq}}
-          onclick="document.tableoptionsform.submit()"/>
+          onclick="document.optionsform.submit()"/>
           Frequency
       </label>
     </span>
@@ -41,7 +40,7 @@
       <label data-fieldtype="checkbox" class="fitem" style="padding:5px;">
         <input id="orderbymark" value="orderbymark" name="roworder" 
           type="radio" {{#orderbymark}}checked{{/orderbymark}}
-          onclick="document.tableoptionsform.submit()"/>
+          onclick="document.optionsform.submit()"/>
           Mark, note, answer
       </label>
     </span>
@@ -50,7 +49,7 @@
       <label data-fieldtype="radio" class="fitem" style="padding:5px;">
         <input id="include_all" name="include" value="all"
           type="radio" {{#include_all}}checked{{/include_all}}
-          onclick="document.tableoptionsform.submit()"/>
+          onclick="document.optionsform.submit()"/>
           All
       </label>
     </span>
@@ -58,7 +57,7 @@
       <label data-fieldtype="radio" class="fitem" style="padding:5px;">
         <input id="include_initial" name="include" value="initial"
           type="radio" {{#include_initial}}checked{{/include_initial}}
-          onclick="document.tableoptionsform.submit()"/>
+          onclick="document.optionsform.submit()"/>
           Initial
       </label>
     </span>
@@ -66,9 +65,8 @@
       <label data-fieldtype="radio" class="fitem" style="padding:5px;">
         <input id="include_final" name="include" value="final"
           type="radio" {{#include_final}}checked{{/include_final}}
-          onclick="document.tableoptionsform.submit()"/>
+          onclick="document.optionsform.submit()"/>
           Final
       </label>
     </span>
-  </form>
 </div>

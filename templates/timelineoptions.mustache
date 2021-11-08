@@ -1,0 +1,22 @@
+<div class="d-flex flex-wrap quiz-stacksheffield-timelineoptions"
+   style="height:50px;line-height:40px;">
+   <span style="display:inline-block;vertical-align:middle;line-height:40px;">
+     Start from:
+     <label data-fieldtype="radio" class="fitem" style="padding:5px;">
+       <input id="timelinebase_view" name="timelinebase" value="view"
+           type="radio" {{#base_view}}checked{{/base_view}}
+           onclick="document.optionsform.submit()"/>
+       First view
+     </label>
+     <label data-fieldtype="radio" class="fitem" style="padding:5px;">
+       <input id="timelinebase_attempt" name="timelinebase" value="attempt"
+          type="radio" {{#base_attempt}}checked{{/base_attempt}}
+          onclick="document.optionsform.submit()"/>
+        First attempt
+     </label>
+     <span style="margin-left:40px;">Zoom:</span>
+     <label class="fitem" style="padding:5px;">
+       <input type="range" class="form-range" id="timelines_zoom" value="0">
+     </label>
+   </span>
+</div>

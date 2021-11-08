@@ -100,7 +100,8 @@ define([],function() {
     timeline_viewer.create_attempt_dom = function(a) {
         var me = this;
 
-        a.x = a.last_step.t * this.w;
+        a.x0 = a.last_step.t * this.w;
+        a.x = a.x0;
         a.y = 2 * (a.i + 2) * this.h;
         a.bar = document.createElementNS('http://www.w3.org/2000/svg','line');
         a.bar.setAttributeNS(null,'x1',0);
@@ -130,8 +131,11 @@ define([],function() {
     timeline_viewer.create_step_dom = function(a,s) {
         var me = this;
 
+        s.x0 = s.t * this.w;
+        s.x = s.x0;
+
         s.marker = document.createElementNS('http://www.w3.org/2000/svg','circle');
-        s.marker.setAttributeNS(null,'cx',s.t * this.w);
+        s.marker.setAttributeNS(null,'cx',s.x);
         s.marker.setAttributeNS(null,'cy',a.y);
         s.marker.setAttributeNS(null,'r',this.marker_radius);
         if (s.fraction == 1) {
@@ -193,12 +197,16 @@ define([],function() {
     };
 
     timeline_viewer.init = function() {
+        var me = this;
+
         this.div     = document.getElementById('timelines_div');
         this.svg     = document.getElementById('timelines_svg');
         this.msg_div = document.getElementById('timelines_msg');
+        this.zoom_ip = document.getElementById('timelines_zoom');
 
         this.h = 3;
-        this.w = 1;
+        this.w0 = 1;
+        this.w = this.w0;
         this.t_max = 800;
         this.marker_radius = 3;
         this.stroke_width = 3;
@@ -233,10 +241,36 @@ define([],function() {
         for (var i = 60; i <= aa.last_step.t; i += 60) {
             this.create_line(i,hh);
         }
+
+        this.zoom_ip.onchange = function() {
+            me.set_zoom();
+        };
     };
 
     timeline_viewer.show_msg = function(s) {
         this.msg_div.innerHTML = s;
+    };
+
+    timeline_viewer.set_zoom = function() {
+        var z = parseFloat(this.zoom_ip.value);
+        var c = Math.exp(-0.05 * z);
+        this.w = this.w0 * c;
+        for (var i in this.attempts) {
+            var a = this.attempts[i];
+            a.x = a.x0 * c;
+            a.bar.setAttributeNS(null,'x2',a.x);
+            for (var j in a.steps) {
+                var s = a.steps[j];
+                s.x = s.x0 * c;
+                s.marker.setAttributeNS(null,'cx',s.x);
+            }
+        }
+
+        for (var k in this.minute_lines) {
+            var l = this.minute_lines[k];
+            l.setAttributeNS(null,'x1',this.w * k);
+            l.setAttributeNS(null,'x2',this.w * k);
+        }
     };
 
     return timeline_viewer;

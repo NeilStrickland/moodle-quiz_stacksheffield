@@ -178,6 +178,10 @@ class question_analysis {
   $this->attempts_by_duration = $this->attempts;
   usort($this->attempts_by_duration,
         array('\quiz_stacksheffield\question_analysis','compare_duration'));
+
+  $this->attempts_by_duration_alt = $this->attempts;
+  usort($this->attempts_by_duration_alt,
+        array('\quiz_stacksheffield\question_analysis','compare_duration_alt'));
  }
 
  static function strip_prefix($s,$prefix) {
@@ -300,5 +304,9 @@ class question_analysis {
 
  static function compare_duration($x,$y) {
   return $x->duration - $y->duration;
+ }
+
+ static function compare_duration_alt($x,$y) {
+  return $x->duration_alt - $y->duration_alt;
  }
 }

@@ -220,6 +220,14 @@ SQL;
         echo $html;
     }
 
+    public function display_timeline_options() {
+        global $OUTPUT;
+
+        $html = $OUTPUT->render_from_template(
+            'quiz_stacksheffield/timelineoptions',$this->timeline_options);
+        echo $html;
+    }
+
     public function analyse_code() {
         $q = $this->question;
         $o = $q->options;
@@ -273,7 +281,7 @@ SQL;
         return $A;
     }
 
-    private function get_table_options() {
+    private function get_options() {
         $O = new stdClass();
         $O->cmid = $this->cm->id;
         $O->question_id = $this->question->id;
@@ -305,17 +313,30 @@ SQL;
 
         $include = optional_param('include','',PARAM_RAW);
         if ($include == 'initial') {
-         $O->include = 'initial';
-         $O->include_initial = 1;
+            $O->include = 'initial';
+            $O->include_initial = 1;
         } elseif ($include == 'final') {
-         $O->include = 'final';
-         $O->include_final = 1;
+            $O->include = 'final';
+            $O->include_final = 1;
         } else {
-         $O->include = 'all';
-         $O->include_all = 1;
+            $O->include = 'all';
+            $O->include_all = 1;
         }
         
         $this->table_options = $O;
+
+        $P = new stdClass();
+        
+        $timelinebase = optional_param('timelinebase','',PARAM_RAW);
+        if ($timelinebase == 'attempt') {
+            $P->base_view    = 0;
+            $P->base_attempt = 1;            
+        } else {
+            $P->base_view    = 1;
+            $P->base_attempt = 0;            
+        }
+
+        $this->timeline_options = $P;
     }
     
     /**
@@ -329,11 +350,13 @@ SQL;
         get_question_options($question);
         $this->analyse_code();
         $A = $this->analyse_data();
-        $this->get_table_options();
+        $this->get_options();
         
         $this->display_index_bar();
 
         $this->display_question_information();
+
+        echo html_writer::start_tag('form',array('name' => 'optionsform'));
 
         echo $OUTPUT->heading('Response analysis', 3);
 
@@ -430,7 +453,12 @@ JS
 
         echo $OUTPUT->heading('Timelines', 3);
 
-        $this->duration_table($A);
+        $this->display_timeline_options();
+
+        $this->timeline_div($A);
+
+        echo html_writer::end_tag('form');  //optionsform
+
     }
 
     function chain_node_contents($x) {
@@ -546,15 +574,29 @@ HTML;
         echo $h;
     }
 
-    function duration_table($A) {
+    function timeline_div($A) {
         global $PAGE,$OUTPUT;
 
         $ttt = array();
+
+        $this->get_options();
+
+        if ($this->timeline_options->base_view) {
+            $attempts = $A->attempts_by_duration;
+        } else {
+            $attempts = $A->attempts_by_duration_alt;
+        }
         
-        foreach($A->attempts_by_duration as $a) {
+        foreach($attempts as $a) {
+            if (! $a->submissions) { continue; }
+            $base = 0;
+            if ($this->timeline_options->base_attempt) {
+                $base = $a->initial_submission->time_offset;
+            }
+
             $tt = array();
             foreach($a->submissions as $s) {
-                $s0 = [$s->time_offset,
+                $s0 = [$s->time_offset - $base,
                        (int) $s->quiz_attempt_id,
                        (int) $s->slot,
                        $s->sequence_number,

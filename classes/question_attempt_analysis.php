@@ -36,6 +36,7 @@ class question_attempt_analysis {
  var $seed = null;
  var $start_time = null;
  var $duration = null;
+ var $duration_alt = null;
  
  function __construct($question,$id,$question_note,$quiz_attempt_id,$slot) {
   $this->question = $question;
@@ -116,14 +117,15 @@ class question_attempt_analysis {
   }
 
   if ($this->submissions) {
-   $s = $this->submissions[0];
-   $s->is_initial_submission = true;
-   $this->initial_submission = $s;
+   $s0 = $this->submissions[0];
+   $s0->is_initial_submission = true;
+   $this->initial_submission = $s0;
    
-   $s = question_analysis::last_entry($this->submissions);
-   $s->is_final_submission = true;
-   $this->final_submission = $s;
-   $this->duration = $s->time_offset;
+   $s1 = question_analysis::last_entry($this->submissions);
+   $s1->is_final_submission = true;
+   $this->final_submission = $s1;
+   $this->duration = $s1->time_offset;
+   $this->duration_alt = $s1->time_offset - $s0->time_offset;
   } else {
    $this->initial_submission = null;
    $this->final_submission = null;
