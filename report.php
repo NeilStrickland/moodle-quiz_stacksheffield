@@ -674,7 +674,7 @@ JS
         $preview_url = quiz_question_preview_url($this->quiz,$this->question);
         $preview_icon = $OUTPUT->pix_icon('t/preview',get_string('previewquestion', 'quiz'));
         $preview_action = new \popup_action('click', $preview_url, 'questionpreview',
-                                            question_preview_popup_params());
+                                            \qbank_previewquestion\helper::question_preview_popup_params());
         $preview_link = $OUTPUT->action_link($preview_url,$preview_icon,$preview_action);
                       
         echo $OUTPUT->heading($edit_link . ' ' .
